@@ -1,0 +1,59 @@
+#
+# Author: a0b013g - Supply Chain Architcture @WalmartLabs
+#
+
+version: '2'
+
+services:
+
+  orderer.vaccination.org:
+    container_name: orderer.vaccination.org
+    image: hyperledger/fabric-orderer:x86_64-1.0.3
+    environment:
+      - ORDERER_GENERAL_LOGLEVEL=debug
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_GENESISMETHOD=file
+      - ORDERER_GENERAL_GENESISFILE=/etc/hyperledger/configtx/genesis.block
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/etc/hyperledger/crypto/orderer/msp
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/etc/hyperledger/crypto/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/etc/hyperledger/crypto/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/etc/hyperledger/crypto/orderer/tls/ca.crt, /etc/hyperledger/crypto/peerid-us/tls/ca.crt, /etc/hyperledger/crypto/peerid-mx/tls/ca.crt, /etc/hyperledger/crypto/peervacci-us/tls/ca.crt, /etc/hyperledger/crypto/peervacci-mx/tls/ca.crt, /etc/hyperledger/crypto/peermc-us/tls/ca.crt, /etc/hyperledger/crypto/peermc-mx/tls/ca.crt]
+    working_dir: /etc/hyperledger
+    command: orderer
+    ports:
+      - 7050:7050
+    volumes:
+        - ../artifacts/channel:/etc/hyperledger/configtx
+        - ../artifacts/crypto-config/ordererOrganizations/vaccination.org/orderers/orderer.vaccination.org/:/etc/hyperledger/crypto/orderer
+        - ../artifacts/crypto-config/peerOrganizations/id-us.vaccination.org/peers/peer0.id-us.vaccination.org/:/etc/hyperledger/crypto/peerid-us
+        - ../artifacts/crypto-config/peerOrganizations/id-mx.vaccination.org/peers/peer0.id-mx.vaccination.org/:/etc/hyperledger/crypto/peerid-mx
+        - ../artifacts/crypto-config/peerOrganizations/vacci-us.vaccination.org/peers/peer0.vacci-us.vaccination.org/:/etc/hyperledger/crypto/peervacci-us
+        - ../artifacts/crypto-config/peerOrganizations/vacci-mx.vaccination.org/peers/peer0.vacci-mx.vaccination.org/:/etc/hyperledger/crypto/peervacci-mx
+        - ../artifacts/crypto-config/peerOrganizations/mc-us.vaccination.org/peers/peer0.mc-us.vaccination.org/:/etc/hyperledger/crypto/peermc-us
+        - ../artifacts/crypto-config/peerOrganizations/mc-mx.vaccination.org/peers/peer0.mc-mx.vaccination.org/:/etc/hyperledger/crypto/peermc-mx
+
+  cli.vaccination.org:
+    container_name: cli.vaccination.org
+    extends:
+      file: base.yaml
+      service: cli-base
+#    volumes:
+#      - ../artifacts/crypto-config/ordererOrganizations/vaccination.org/orderers/orderer.vaccination.org/tls:/etc/hyperledger/crypto/orderer/tls
+    extra_hosts:
+      - orderer.vaccination.org:10.117.145.173
+      - www.vaccination.org:10.117.145.173
+      - www.id-us.vaccination.org:10.117.130.243
+      - www.id-mx.vaccination.org:10.117.187.38
+      - www.vacci-us.vaccination.org:10.117.163.97
+      - www.vacci-mx.vaccination.org:10.117.171.191
+
+  # simple http server to disseminate certificates
+  www.vaccination.org:
+    extends:
+      file: base.yaml
+      service: www-base
+    container_name: www.vaccination.org
+    ports:
+      - 8080:80

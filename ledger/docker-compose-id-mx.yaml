@@ -1,0 +1,116 @@
+#
+# Author: a0b013g - Supply Chain Architcture @WalmartLabs
+#
+
+version: '2'
+
+services:
+
+  ca.id-mx.vaccination.org:
+    container_name: ca.id-mx.vaccination.org
+    image: hyperledger/fabric-ca:x86_64-1.0.3
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.id-mx.vaccination.org-cert.pem
+      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/170d03f160ec3fff100dd1713aae009bf56382ceb67db0b68f061c022c3686be_sk
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.id-mx.vaccination.org-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/170d03f160ec3fff100dd1713aae009bf56382ceb67db0b68f061c022c3686be_sk
+#    ports:
+#      - 8054:7054
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ../artifacts/crypto-config/peerOrganizations/id-mx.vaccination.org/ca/:/etc/hyperledger/fabric-ca-server-config
+      - ../artifacts/fabric-ca-server-config-id-mx.yaml:/etc/hyperledger/fabric-ca-server/fabric-ca-server-config.yaml
+
+  #Added for CouchDB
+  peerdb.id-mx.vaccination.org:
+    container_name: peerdb.id-mx.vaccination.org
+    image: hyperledger/fabric-couchdb:x86_64-1.0.0
+
+  peer0.id-mx.vaccination.org:
+    container_name: peer0.id-mx.vaccination.org
+    extends:
+      file:   base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer0.id-mx.vaccination.org
+      - CORE_PEER_LOCALMSPID=id-mxMSP
+      - CORE_PEER_ADDRESS=peer0.id-mx.vaccination.org:7051
+       # Added for CouchDB as State DB
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=peerdb.id-mx.vaccination.org:5984
+    ports:
+      - 8051:7051
+      - 8053:7053
+    volumes:
+        - ../artifacts/crypto-config/peerOrganizations/id-mx.vaccination.org/peers/peer0.id-mx.vaccination.org/:/etc/hyperledger/crypto/peer
+    depends_on:
+      - ca.id-mx.vaccination.org
+      - peerdb.id-mx.vaccination.org
+    
+
+  peer1.id-mx.vaccination.org:
+    container_name: peer1.id-mx.vaccination.org
+    extends:
+      file:   base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer1.id-mx.vaccination.org
+      - CORE_PEER_LOCALMSPID=id-mxMSP
+      - CORE_PEER_ADDRESS=peer1.id-mx.vaccination.org:7051
+      # Added for CouchDB as State DB
+      #- CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      #- CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=peerdb.id-mx.vaccination.org:5984
+    ports:
+      - 8056:7051
+      - 8058:7053
+    volumes:
+        - ../artifacts/crypto-config/peerOrganizations/id-mx.vaccination.org/peers/peer1.id-mx.vaccination.org/:/etc/hyperledger/crypto/peer
+    depends_on:
+      - ca.id-mx.vaccination.org
+      - peerdb.id-mx.vaccination.org
+    
+
+  # fabric-rest api server
+  api.id-mx.vaccination.org:
+    extends:
+      file: base.yaml
+      service: api-base
+    container_name: api.id-mx.vaccination.org
+    ports:
+      - 4001:4000
+    environment:
+      - ORG=id-mx
+      - PORT=4000
+    depends_on:
+      - peer0.id-mx.vaccination.org
+      - peer1.id-mx.vaccination.org
+    
+
+  cli.vaccination.org:
+    container_name: cli.vaccination.org
+    extends:
+      file: base.yaml
+      service: cli-base
+    volumes:
+      - ../artifacts/crypto-config/ordererOrganizations/vaccination.org/orderers/orderer.vaccination.org/tls:/etc/hyperledger/crypto/orderer/tls
+
+  cli.id-mx.vaccination.org:
+    container_name: cli.id-mx.vaccination.org
+    extends:
+      service: cli.vaccination.org
+    environment:
+      - CORE_PEER_LOCALMSPID=id-mxMSP
+    volumes:
+        - ../artifacts/crypto-config/peerOrganizations/id-mx.vaccination.org/users/Admin@id-mx.vaccination.org:/etc/hyperledger/crypto/peer
+    
+
+  # simple http server to disseminate certificates
+  www.id-mx.vaccination.org:
+    extends:
+      file: base.yaml
+      service: www-base
+    container_name: www.id-mx.vaccination.org
+    ports:
+      - 8082:80

@@ -1,0 +1,116 @@
+#
+# Author: a0b013g - Supply Chain Architcture @WalmartLabs
+#
+
+version: '2'
+
+services:
+
+  ca.mc-mx.vaccination.org:
+    container_name: ca.mc-mx.vaccination.org
+    image: hyperledger/fabric-ca:x86_64-1.0.3
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.mc-mx.vaccination.org-cert.pem
+      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/d6fa5a036d0e844c9fd8dfabd0b0f81b5cab39c3bc030976917d01425c7165f7_sk
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.mc-mx.vaccination.org-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/d6fa5a036d0e844c9fd8dfabd0b0f81b5cab39c3bc030976917d01425c7165f7_sk
+#    ports:
+#      - 12054:7054
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ../artifacts/crypto-config/peerOrganizations/mc-mx.vaccination.org/ca/:/etc/hyperledger/fabric-ca-server-config
+      - ../artifacts/fabric-ca-server-config-mc-mx.yaml:/etc/hyperledger/fabric-ca-server/fabric-ca-server-config.yaml
+
+  #Added for CouchDB
+  peerdb.mc-mx.vaccination.org:
+    container_name: peerdb.mc-mx.vaccination.org
+    image: hyperledger/fabric-couchdb:x86_64-1.0.0
+
+  peer0.mc-mx.vaccination.org:
+    container_name: peer0.mc-mx.vaccination.org
+    extends:
+      file:   base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer0.mc-mx.vaccination.org
+      - CORE_PEER_LOCALMSPID=mc-mxMSP
+      - CORE_PEER_ADDRESS=peer0.mc-mx.vaccination.org:7051
+       # Added for CouchDB as State DB
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=peerdb.mc-mx.vaccination.org:5984
+    ports:
+      - 12051:7051
+      - 12053:7053
+    volumes:
+        - ../artifacts/crypto-config/peerOrganizations/mc-mx.vaccination.org/peers/peer0.mc-mx.vaccination.org/:/etc/hyperledger/crypto/peer
+    depends_on:
+      - ca.mc-mx.vaccination.org
+      - peerdb.mc-mx.vaccination.org
+    
+
+  peer1.mc-mx.vaccination.org:
+    container_name: peer1.mc-mx.vaccination.org
+    extends:
+      file:   base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer1.mc-mx.vaccination.org
+      - CORE_PEER_LOCALMSPID=mc-mxMSP
+      - CORE_PEER_ADDRESS=peer1.mc-mx.vaccination.org:7051
+      # Added for CouchDB as State DB
+      #- CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      #- CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=peerdb.mc-mx.vaccination.org:5984
+    ports:
+      - 12056:7051
+      - 12058:7053
+    volumes:
+        - ../artifacts/crypto-config/peerOrganizations/mc-mx.vaccination.org/peers/peer1.mc-mx.vaccination.org/:/etc/hyperledger/crypto/peer
+    depends_on:
+      - ca.mc-mx.vaccination.org
+      - peerdb.mc-mx.vaccination.org
+    
+
+  # fabric-rest api server
+  api.mc-mx.vaccination.org:
+    extends:
+      file: base.yaml
+      service: api-base
+    container_name: api.mc-mx.vaccination.org
+    ports:
+      - 4005:4000
+    environment:
+      - ORG=mc-mx
+      - PORT=4000
+    depends_on:
+      - peer0.mc-mx.vaccination.org
+      - peer1.mc-mx.vaccination.org
+    
+
+  cli.vaccination.org:
+    container_name: cli.vaccination.org
+    extends:
+      file: base.yaml
+      service: cli-base
+    volumes:
+      - ../artifacts/crypto-config/ordererOrganizations/vaccination.org/orderers/orderer.vaccination.org/tls:/etc/hyperledger/crypto/orderer/tls
+
+  cli.mc-mx.vaccination.org:
+    container_name: cli.mc-mx.vaccination.org
+    extends:
+      service: cli.vaccination.org
+    environment:
+      - CORE_PEER_LOCALMSPID=mc-mxMSP
+    volumes:
+        - ../artifacts/crypto-config/peerOrganizations/mc-mx.vaccination.org/users/Admin@mc-mx.vaccination.org:/etc/hyperledger/crypto/peer
+    
+
+  # simple http server to disseminate certificates
+  www.mc-mx.vaccination.org:
+    extends:
+      file: base.yaml
+      service: www-base
+    container_name: www.mc-mx.vaccination.org
+    ports:
+      - 8086:80

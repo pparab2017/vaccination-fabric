@@ -1,0 +1,50 @@
+# Author: a0b013g - Supply Chain Architcture @WalmartLabs
+#
+
+version: '2'
+
+services:
+ 
+  mysql.service.blockchain.uofa.edu:
+    container_name: mysql.service.blockchain.uofa.edu
+    image: mysql:5.5
+    environment:
+      - MYSQL_ROOT_PASSWORD=Pasw0rd@123
+      #- MYSQL_DATABASE: codechix
+    ports: 
+      - 3306:3306
+    volumes:
+      - ../car-service/dbscripts:/docker-entrypoint-initdb.d
+
+  car-master-service.blockchain.uofa.edu:
+    container_name: car-master-service.blockchain.uofa.edu
+    image: node:latest
+    volumes:
+      - ../car-service:/car-service
+    working_dir: /
+    ports:
+      - 8000:8000
+    #tty: true
+    command: "./car-service/scripts/start-service.sh"
+    depends_on:
+      - mysql.service.blockchain.uofa.edu
+
+  car-blockchain-ui.blockchain.uofa.edu:
+    container_name: car-blockchain-ui.blockchain.uofa.edu
+    image: node:latest
+    volumes:
+      - ../car-blockchain:/car-blockchain
+    working_dir: /
+    ports:
+      - 3000:3000
+    #tty: true
+    command: "./car-blockchain/config/start-ui.sh"
+
+  portainer.blockchain.uofa.edu:
+    image: portainer/portainer
+    container_name: portainer.blockchain.uofa.edu
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/data
+    ports:
+      - 9000:9000

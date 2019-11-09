@@ -1,0 +1,116 @@
+#
+# Author: a0b013g - Supply Chain Architcture @WalmartLabs
+#
+
+version: '2'
+
+services:
+
+  ca.id-us.vaccination.org:
+    container_name: ca.id-us.vaccination.org
+    image: hyperledger/fabric-ca:x86_64-1.0.3
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.id-us.vaccination.org-cert.pem
+      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/ec4c2def1d1e4a006f2cf1ac72dd10c6b4914ed86cc7a0db86694e21bf9dca3b_sk
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.id-us.vaccination.org-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/ec4c2def1d1e4a006f2cf1ac72dd10c6b4914ed86cc7a0db86694e21bf9dca3b_sk
+#    ports:
+#      - 7054:7054
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ../artifacts/crypto-config/peerOrganizations/id-us.vaccination.org/ca/:/etc/hyperledger/fabric-ca-server-config
+      - ../artifacts/fabric-ca-server-config-id-us.yaml:/etc/hyperledger/fabric-ca-server/fabric-ca-server-config.yaml
+
+  #Added for CouchDB
+  peerdb.id-us.vaccination.org:
+    container_name: peerdb.id-us.vaccination.org
+    image: hyperledger/fabric-couchdb:x86_64-1.0.0
+
+  peer0.id-us.vaccination.org:
+    container_name: peer0.id-us.vaccination.org
+    extends:
+      file:   base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer0.id-us.vaccination.org
+      - CORE_PEER_LOCALMSPID=id-usMSP
+      - CORE_PEER_ADDRESS=peer0.id-us.vaccination.org:7051
+       # Added for CouchDB as State DB
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=peerdb.id-us.vaccination.org:5984
+    ports:
+      - 7051:7051
+      - 7053:7053
+    volumes:
+        - ../artifacts/crypto-config/peerOrganizations/id-us.vaccination.org/peers/peer0.id-us.vaccination.org/:/etc/hyperledger/crypto/peer
+    depends_on:
+      - ca.id-us.vaccination.org
+      - peerdb.id-us.vaccination.org
+    
+
+  peer1.id-us.vaccination.org:
+    container_name: peer1.id-us.vaccination.org
+    extends:
+      file:   base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer1.id-us.vaccination.org
+      - CORE_PEER_LOCALMSPID=id-usMSP
+      - CORE_PEER_ADDRESS=peer1.id-us.vaccination.org:7051
+      # Added for CouchDB as State DB
+      #- CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      #- CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=peerdb.id-us.vaccination.org:5984
+    ports:
+      - 7056:7051
+      - 7058:7053
+    volumes:
+        - ../artifacts/crypto-config/peerOrganizations/id-us.vaccination.org/peers/peer1.id-us.vaccination.org/:/etc/hyperledger/crypto/peer
+    depends_on:
+      - ca.id-us.vaccination.org
+      - peerdb.id-us.vaccination.org
+    
+
+  # fabric-rest api server
+  api.id-us.vaccination.org:
+    extends:
+      file: base.yaml
+      service: api-base
+    container_name: api.id-us.vaccination.org
+    ports:
+      - 4000:4000
+    environment:
+      - ORG=id-us
+      - PORT=4000
+    depends_on:
+      - peer0.id-us.vaccination.org
+      - peer1.id-us.vaccination.org
+    
+
+  cli.vaccination.org:
+    container_name: cli.vaccination.org
+    extends:
+      file: base.yaml
+      service: cli-base
+    volumes:
+      - ../artifacts/crypto-config/ordererOrganizations/vaccination.org/orderers/orderer.vaccination.org/tls:/etc/hyperledger/crypto/orderer/tls
+
+  cli.id-us.vaccination.org:
+    container_name: cli.id-us.vaccination.org
+    extends:
+      service: cli.vaccination.org
+    environment:
+      - CORE_PEER_LOCALMSPID=id-usMSP
+    volumes:
+        - ../artifacts/crypto-config/peerOrganizations/id-us.vaccination.org/users/Admin@id-us.vaccination.org:/etc/hyperledger/crypto/peer
+    
+
+  # simple http server to disseminate certificates
+  www.id-us.vaccination.org:
+    extends:
+      file: base.yaml
+      service: www-base
+    container_name: www.id-us.vaccination.org
+    ports:
+      - 8081:80

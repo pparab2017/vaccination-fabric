@@ -1,0 +1,116 @@
+#
+# Author: a0b013g - Supply Chain Architcture @WalmartLabs
+#
+
+version: '2'
+
+services:
+
+  ca.vacci-us.vaccination.org:
+    container_name: ca.vacci-us.vaccination.org
+    image: hyperledger/fabric-ca:x86_64-1.0.3
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.vacci-us.vaccination.org-cert.pem
+      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/91756768e9159d14af87507a3db89fb4d26e9e4215ff49305baf2f083d6fdd9e_sk
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.vacci-us.vaccination.org-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/91756768e9159d14af87507a3db89fb4d26e9e4215ff49305baf2f083d6fdd9e_sk
+#    ports:
+#      - 9054:7054
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ../artifacts/crypto-config/peerOrganizations/vacci-us.vaccination.org/ca/:/etc/hyperledger/fabric-ca-server-config
+      - ../artifacts/fabric-ca-server-config-vacci-us.yaml:/etc/hyperledger/fabric-ca-server/fabric-ca-server-config.yaml
+
+  #Added for CouchDB
+  peerdb.vacci-us.vaccination.org:
+    container_name: peerdb.vacci-us.vaccination.org
+    image: hyperledger/fabric-couchdb:x86_64-1.0.0
+
+  peer0.vacci-us.vaccination.org:
+    container_name: peer0.vacci-us.vaccination.org
+    extends:
+      file:   base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer0.vacci-us.vaccination.org
+      - CORE_PEER_LOCALMSPID=vacci-usMSP
+      - CORE_PEER_ADDRESS=peer0.vacci-us.vaccination.org:7051
+       # Added for CouchDB as State DB
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=peerdb.vacci-us.vaccination.org:5984
+    ports:
+      - 9051:7051
+      - 9053:7053
+    volumes:
+        - ../artifacts/crypto-config/peerOrganizations/vacci-us.vaccination.org/peers/peer0.vacci-us.vaccination.org/:/etc/hyperledger/crypto/peer
+    depends_on:
+      - ca.vacci-us.vaccination.org
+      - peerdb.vacci-us.vaccination.org
+    
+
+  peer1.vacci-us.vaccination.org:
+    container_name: peer1.vacci-us.vaccination.org
+    extends:
+      file:   base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer1.vacci-us.vaccination.org
+      - CORE_PEER_LOCALMSPID=vacci-usMSP
+      - CORE_PEER_ADDRESS=peer1.vacci-us.vaccination.org:7051
+      # Added for CouchDB as State DB
+      #- CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      #- CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=peerdb.vacci-us.vaccination.org:5984
+    ports:
+      - 9056:7051
+      - 9058:7053
+    volumes:
+        - ../artifacts/crypto-config/peerOrganizations/vacci-us.vaccination.org/peers/peer1.vacci-us.vaccination.org/:/etc/hyperledger/crypto/peer
+    depends_on:
+      - ca.vacci-us.vaccination.org
+      - peerdb.vacci-us.vaccination.org
+    
+
+  # fabric-rest api server
+  api.vacci-us.vaccination.org:
+    extends:
+      file: base.yaml
+      service: api-base
+    container_name: api.vacci-us.vaccination.org
+    ports:
+      - 4002:4000
+    environment:
+      - ORG=vacci-us
+      - PORT=4000
+    depends_on:
+      - peer0.vacci-us.vaccination.org
+      - peer1.vacci-us.vaccination.org
+    
+
+  cli.vaccination.org:
+    container_name: cli.vaccination.org
+    extends:
+      file: base.yaml
+      service: cli-base
+    volumes:
+      - ../artifacts/crypto-config/ordererOrganizations/vaccination.org/orderers/orderer.vaccination.org/tls:/etc/hyperledger/crypto/orderer/tls
+
+  cli.vacci-us.vaccination.org:
+    container_name: cli.vacci-us.vaccination.org
+    extends:
+      service: cli.vaccination.org
+    environment:
+      - CORE_PEER_LOCALMSPID=vacci-usMSP
+    volumes:
+        - ../artifacts/crypto-config/peerOrganizations/vacci-us.vaccination.org/users/Admin@vacci-us.vaccination.org:/etc/hyperledger/crypto/peer
+    
+
+  # simple http server to disseminate certificates
+  www.vacci-us.vaccination.org:
+    extends:
+      file: base.yaml
+      service: www-base
+    container_name: www.vacci-us.vaccination.org
+    ports:
+      - 8083:80
