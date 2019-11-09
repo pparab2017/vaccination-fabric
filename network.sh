@@ -803,15 +803,16 @@ elif [ "${MODE}" == "install" -a "${ORG}" == "" ]; then
   
 elif [ "${MODE}" == "channel" -a "${ORG}" == "" ]; then
 
-  createJoinInstantiateWarmUp ${ORG1} "vaccination-us" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}  
-  joinWarmUp ${ORG3} "vaccination-us" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}
-  instantiateWarmUp ${ORG1} "vaccination-us" ${CHAINCODE_VACCINATE} ${CHAINCODE_VACCINATE_INIT}
-  warmUpChainCode ${ORG3} "vaccination-us" ${CHAINCODE_VACCINATE}
+  #createJoinInstantiateWarmUp ${ORG1} "vaccination-us" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}  
+  #joinWarmUp ${ORG3} "vaccination-us" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}
+  #instantiateWarmUp ${ORG1} "vaccination-us" ${CHAINCODE_VACCINATE} ${CHAINCODE_VACCINATE_INIT}
+  #warmUpChainCode ${ORG3} "vaccination-us" ${CHAINCODE_VACCINATE}
     #createJoinInstantiateWarmUp ${ORG2} "vaccination-mx" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}  
    #joinWarmUp ${ORG4} "vaccination-mx" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}
     #instantiateWarmUp ${ORG2} "vaccination-mx" ${CHAINCODE_VACCINATE} ${CHAINCODE_VACCINATE_INIT}
     #warmUpChainCode ${ORG4} "vaccination-mx" ${CHAINCODE_VACCINATE}
-  createJoinInstantiateWarmUp ${ORG3} "medi-council-us" ${CHAINCODE_MEDI_COUNCIL_REGISTER} ${CHAINCODE_MEDI_COUNCIL_REGISTER_INIT}
+  #createJoinInstantiateWarmUp ${ORG3} "medi-council-us" ${CHAINCODE_MEDI_COUNCIL_REGISTER} ${CHAINCODE_MEDI_COUNCIL_REGISTER_INIT}
+  instantiateWarmUp ${ORG3} "medi-council-us" ${CHAINCODE_MEDI_COUNCIL_REGISTER} ${CHAINCODE_MEDI_COUNCIL_REGISTER_INIT}
   joinWarmUp ${ORG5} "medi-council-us" ${CHAINCODE_MEDI_COUNCIL_REGISTER} ${CHAINCODE_MEDI_COUNCIL_REGISTER_INIT}
     #createJoinInstantiateWarmUp ${ORG4} "medi-council-mx" ${CHAINCODE_MEDI_COUNCIL_REGISTER} ${CHAINCODE_MEDI_COUNCIL_REGISTER_INIT}
     #joinWarmUp ${ORG6} "medi-council-mx" ${CHAINCODE_MEDI_COUNCIL_REGISTER} ${CHAINCODE_MEDI_COUNCIL_REGISTER_INIT}
