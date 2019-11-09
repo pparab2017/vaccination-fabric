@@ -764,21 +764,21 @@ elif [ "${MODE}" == "api-up" -a "${ORG}" == "" ]; then
     dockerComposeApiServerUp ${org}
   done  
 elif [ "${MODE}" == "install" -a "${ORG}" == "" ]; then
-  #for org in ${ORG1} ${ORG2} ${ORG3} ${ORG4}
-  #do
-    #installIdentityRegister ${org}
-  #done
-  for org in ${ORG3} ${ORG4} ${ORG5} ${ORG6}
+  for org in ${ORG1} ${ORG2} ${ORG3} ${ORG4}
   do
-    installMediCouncilRegister ${org}
+    installIdentityRegister ${org}
   done
+  #for org in ${ORG3} ${ORG4} ${ORG5} ${ORG6}
+  #do
+  #  installMediCouncilRegister ${org}
+  #done
   
 elif [ "${MODE}" == "channel" -a "${ORG}" == "" ]; then
 
-  #createJoinInstantiateWarmUp ${ORG1} "vaccination-us" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}  
-  #joinWarmUp ${ORG3} "vaccination-us" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}
-  #createJoinInstantiateWarmUp ${ORG2} "vaccination-mx" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}  
-  #joinWarmUp ${ORG4} "vaccination-mx" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}
+  createJoinInstantiateWarmUp ${ORG1} "vaccination-us" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}  
+  joinWarmUp ${ORG3} "vaccination-us" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}
+  createJoinInstantiateWarmUp ${ORG2} "vaccination-mx" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}  
+  joinWarmUp ${ORG4} "vaccination-mx" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}
   createJoinInstantiateWarmUp ${ORG3} "medi-council-us" ${CHAINCODE_MEDI_COUNCIL_REGISTER} ${CHAINCODE_MEDI_COUNCIL_REGISTER_INIT}
   joinWarmUp ${ORG5} "medi-council-us" ${CHAINCODE_MEDI_COUNCIL_REGISTER} ${CHAINCODE_MEDI_COUNCIL_REGISTER_INIT}
   createJoinInstantiateWarmUp ${ORG4} "medi-council-mx" ${CHAINCODE_MEDI_COUNCIL_REGISTER} ${CHAINCODE_MEDI_COUNCIL_REGISTER_INIT}
