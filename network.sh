@@ -28,12 +28,10 @@ CHAINCODE_IDENTITY_REGISTER=identity-register
 CHAINCODE_IDENTITY_REGISTER_INIT='{"Args":["init"]}'
 CHAINCODE_MEDI_COUNCIL_REGISTER=vacci-admin
 CHAINCODE_MEDI_COUNCIL_REGISTER_INIT='{"Args":["init"]}'
-CHAINCODE_DMV_BANKER=banker
-CHAINCODE_DMV_BANKER_INIT='{"Args":["init"]}'
-CHAINCODE_DMV_INSURANCE=insurance
-CHAINCODE_DMV_INSURANCE_INIT='{"Args":["init"]}'
-CHAINCODE_DMV_REGISTER=register
-CHAINCODE_DMV_REGISTER_INIT='{"Args":["init"]}'
+CHAINCODE_GLOBAL_IDENTITY=identity-global
+CHAINCODE_GLOBAL_IDENTITY_INIT='{"Args":["init"]}'
+CHAINCODE_VACCINATE=vaccinate
+CHAINCODE_VACCINATE_INIT='{"Args":["init"]}'
 CHAINCODE_WARMUP_QUERY="'{\"Args\":[\"query\",\"health\"]}'"
 
 DEFAULT_ORDERER_PORT=7050
@@ -406,19 +404,19 @@ function installMediCouncilRegister(){
   done
 }
 
-function installDmvDealer() {
+function installGlobalIdentity() {
   org=$1
 
-  for chaincode_name in ${CHAINCODE_DMV_DEALER}
+  for chaincode_name in ${CHAINCODE_GLOBAL_IDENTITY}
   do
     installChaincode ${org} ${chaincode_name}
   done
 }
 
-function installDmvBanker() {
+function installVaccinate() {
   org=$1
 
-  for chaincode_name in ${CHAINCODE_DMV_BANKER}
+  for chaincode_name in ${CHAINCODE_VACCINATE}
   do
     installChaincode ${org} ${chaincode_name}
   done
@@ -464,6 +462,25 @@ function createJoinInstantiateWarmUp() {
   joinChannel ${org} ${channel_name}
   instantiateChaincode ${org} ${channel_name} ${chaincode_name} ${chaincode_init}
   sleep 7
+  warmUpChaincode ${org} ${channel_name} ${chaincode_name}
+}
+
+function instantiateWarmUp() {
+  org=${1}
+  channel_name=${2}
+  chaincode_name=${3}
+  chaincode_init=${4}
+
+  instantiateChaincode ${org} ${channel_name} ${chaincode_name} ${chaincode_init}
+  sleep 7
+  warmUpChaincode ${org} ${channel_name} ${chaincode_name}
+}
+
+function warmUpChainCode() {
+
+  org=${1}
+  channel_name=${2}
+  chaincode_name=${3}
   warmUpChaincode ${org} ${channel_name} ${chaincode_name}
 }
 
@@ -768,21 +785,41 @@ elif [ "${MODE}" == "install" -a "${ORG}" == "" ]; then
   do
     installIdentityRegister ${org}
   done
-  #for org in ${ORG3} ${ORG4} ${ORG5} ${ORG6}
-  #do
-  #  installMediCouncilRegister ${org}
-  #done
+  for org in ${ORG3} ${ORG4} ${ORG5} ${ORG6}
+  do
+    installMediCouncilRegister ${org}
+  done
+
+  for org in ${ORG1} ${ORG2}
+  do
+    installGlobalIdentity ${org}
+  done
+
+  for org in ${ORG1} ${ORG2} ${ORG3} ${ORG4}
+  do
+    installVaccinate ${org}
+  done
+
   
 elif [ "${MODE}" == "channel" -a "${ORG}" == "" ]; then
 
   createJoinInstantiateWarmUp ${ORG1} "vaccination-us" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}  
   joinWarmUp ${ORG3} "vaccination-us" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}
-  createJoinInstantiateWarmUp ${ORG2} "vaccination-mx" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}  
-  joinWarmUp ${ORG4} "vaccination-mx" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}
+  instantiateWarmUp ${ORG1} "vaccination-us" ${CHAINCODE_VACCINATE} ${CHAINCODE_VACCINATE_INIT}
+  warmUpChainCode ${ORG3} "vaccination-us" ${CHAINCODE_VACCINATE}
+    #createJoinInstantiateWarmUp ${ORG2} "vaccination-mx" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}  
+   #joinWarmUp ${ORG4} "vaccination-mx" ${CHAINCODE_IDENTITY_REGISTER} ${CHAINCODE_IDENTITY_REGISTER_INIT}
+    #instantiateWarmUp ${ORG2} "vaccination-mx" ${CHAINCODE_VACCINATE} ${CHAINCODE_VACCINATE_INIT}
+    #warmUpChainCode ${ORG4} "vaccination-mx" ${CHAINCODE_VACCINATE}
   createJoinInstantiateWarmUp ${ORG3} "medi-council-us" ${CHAINCODE_MEDI_COUNCIL_REGISTER} ${CHAINCODE_MEDI_COUNCIL_REGISTER_INIT}
   joinWarmUp ${ORG5} "medi-council-us" ${CHAINCODE_MEDI_COUNCIL_REGISTER} ${CHAINCODE_MEDI_COUNCIL_REGISTER_INIT}
-  createJoinInstantiateWarmUp ${ORG4} "medi-council-mx" ${CHAINCODE_MEDI_COUNCIL_REGISTER} ${CHAINCODE_MEDI_COUNCIL_REGISTER_INIT}
-  joinWarmUp ${ORG6} "medi-council-mx" ${CHAINCODE_MEDI_COUNCIL_REGISTER} ${CHAINCODE_MEDI_COUNCIL_REGISTER_INIT}
+    #createJoinInstantiateWarmUp ${ORG4} "medi-council-mx" ${CHAINCODE_MEDI_COUNCIL_REGISTER} ${CHAINCODE_MEDI_COUNCIL_REGISTER_INIT}
+    #joinWarmUp ${ORG6} "medi-council-mx" ${CHAINCODE_MEDI_COUNCIL_REGISTER} ${CHAINCODE_MEDI_COUNCIL_REGISTER_INIT}
+  createJoinInstantiateWarmUp ${ORG1} "identity" ${CHAINCODE_GLOBAL_IDENTITY} ${CHAINCODE_GLOBAL_IDENTITY_INIT}  
+  joinWarmUp ${ORG2} "identity" ${CHAINCODE_GLOBAL_IDENTITY} ${CHAINCODE_GLOBAL_IDENTITY_INIT}
+
+
+
 
 elif [ "${MODE}" == "down" ]; then
   dockerComposeDown ${DOMAIN}

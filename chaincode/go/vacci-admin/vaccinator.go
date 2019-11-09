@@ -39,6 +39,8 @@ func (t *VaccinationAdministrator) Invoke(stub shim.ChaincodeStubInterface) pb.R
 		return t.register(stub, args)
 	} else if function == "query" {
 		return t.query(stub, args)
+	} else if function == "queryForDoctor" {
+		return t.queryForDoctor(stub, args)
 	}
 
 	return pb.Response{Status: 403, Message: "unknown function name"}
@@ -128,6 +130,27 @@ func (t *VaccinationAdministrator) query(stub shim.ChaincodeStubInterface, args 
 
 	}
 	return shim.Success(nil)
+}
+
+func (t *VaccinationAdministrator) queryForDoctor(stub shim.ChaincodeStubInterface, args []string) pb.Response {
+
+	key := "did:" + "mc-us" + ":"
+
+	if len(args) == 1 {
+		identifier := args[0]
+
+		key = key + identifier
+	}
+
+	logger.Info("Key is: " + key)
+	jsonVaccineAdminObj, err := stub.GetState(key)
+	if err != nil {
+		return shim.Error("Cannot get State")
+	}
+	logger.Debug("Value: " + string(jsonVaccineAdminObj))
+
+	return shim.Success(jsonVaccineAdminObj)
+
 }
 
 var getCreator = func(certificate []byte) (string, string) {
